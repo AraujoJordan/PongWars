@@ -21,14 +21,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
 
 @Composable
 private fun Arena() {
@@ -39,6 +31,6 @@ private fun Arena() {
 @Composable
 fun GreetingPreview() {
     TestTheme {
-        Greeting("Android")
+        Arena()
     }
 }
