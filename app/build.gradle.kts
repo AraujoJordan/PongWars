@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.test"
+    namespace = "com.araujojordan.pong"
     compileSdk = 34
 
     defaultConfig {
@@ -60,4 +60,5 @@ dependencies {
     implementation(libs.androidx.material3)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+    runtimeOnly(libs.androidx.ui.util)
 }
