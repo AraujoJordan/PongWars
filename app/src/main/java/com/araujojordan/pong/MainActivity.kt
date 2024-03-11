@@ -1,34 +1,24 @@
 package com.araujojordan.pong
 
 import MainViewModel
-import android.graphics.drawable.shapes.Shape
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.background
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateOffsetAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredSize
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Shapes
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-import com.araujojordan.pong.ui.theme.TestTheme
+import com.araujojordan.pong.models.Arena
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -36,58 +26,57 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         val viewModel = MainViewModel()
         setContent {
-            Arena(
-                trueBall = viewModel.ballTrue.collectAsState(Ball(true)).value,
-                falseBall = viewModel.ballFalse.collectAsState(Ball(false)).value,
-                arena = viewModel.arena.collectAsState(Arena()).value,
-            )
-        }
-    }
-}
-
-val size = 15.dp
-
-@Composable
-private fun Arena(
-    trueBall: Ball,
-    falseBall: Ball,
-    arena: Arena
-) = Box(
-    modifier = Modifier.fillMaxSize().background(Color.LightGray),
-    contentAlignment = Alignment.Center,
-) {
-    Row {
-        arena.slots.forEachIndexed { x, columns ->
-            Column {
-                columns.forEachIndexed { y, tile ->
-                    Box(
-                        Modifier
-                            .requiredSize(size)
-                            .background(if (tile) Color.White else Color.Black)
-                    ) {
-                        if (trueBall.position.contentEquals(intArrayOf(x, y))) {
-                            Ball(trueBall)
-                        }
-                        if (falseBall.position.contentEquals(intArrayOf(x, y))) {
-                            Ball(falseBall)
-                        }
-                    }
-                }
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                Arena(
+                    slotSize = viewModel.slotSize,
+                    trueBall = animateOffsetAsState(
+                        viewModel.ball1Position.collectAsState(initial = Offset(0f,0f)).value,
+                        animationSpec = tween(
+                            durationMillis = viewModel.gameLoopDuration.inWholeMilliseconds.toInt(),
+                            easing = LinearEasing,
+                        ),
+                    ).value,
+                    falseBall =  animateOffsetAsState(
+                        viewModel.ball2Position.collectAsState(initial = Offset(0f,0f)).value,
+                        animationSpec = tween(
+                            durationMillis = viewModel.gameLoopDuration.inWholeMilliseconds.toInt(),
+                            easing = LinearEasing,
+                        ),
+                    ).value,
+                    arena = viewModel.arena.collectAsState(Arena()).value,
+                )
             }
         }
     }
 }
 
 @Composable
-private fun Ball(ball: Ball) = Box(
-    modifier = Modifier.clip(CircleShape)
-        .requiredSize(size)
-        .background(if (ball.team) Color.Red else Color.Blue)
-
-)
-
-@Composable
-@Preview
-private fun Preview() {
-    Arena()
+private fun Arena(
+    slotSize: Float,
+    trueBall: Offset,
+    falseBall: Offset,
+    arena: Arena,
+) = Canvas(modifier = Modifier) {
+    arena.slots.forEachIndexed { x, rows ->
+        rows.forEachIndexed { y, tile ->
+            drawRect(
+                color = if (tile) Color.Black else Color.White,
+                topLeft = Offset(x * slotSize, y * slotSize),
+                size = Size(slotSize, slotSize),
+            )
+        }
+    }
+    drawCircle(
+        color = Color.White,
+        center = trueBall,
+        radius = slotSize,
+    )
+    drawCircle(
+        color = Color.Black,
+        center = falseBall,
+        radius = slotSize,
+    )
 }
