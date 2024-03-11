@@ -15,24 +15,14 @@ import kotlin.time.Duration.Companion.milliseconds
 
 internal class MainViewModel : ViewModel() {
 
+    val arena = MutableStateFlow(Arena())
+
+    var arenaWidth = 96
+    var arenaHeight = 60
     val slotSize = 20f
-    val gameLoopDuration = 50.milliseconds
-    private val ballTrue = MutableStateFlow(Ball(true, intArrayOf(0,4)))
-    private val ballFalse = MutableStateFlow(Ball(false, intArrayOf(9,4)))
-    val arena = MutableStateFlow(
-        Arena(arrayOf(
-        arrayOf(true, true, true, true, true, true, true, true, true, true),
-        arrayOf(true, true, true, true, true, true, true, true, true, true),
-        arrayOf(true, true, true, true, true, true, true, true, true, true),
-        arrayOf(true, true, true, true, true, true, true, true, true, true),
-        arrayOf(true, true, true, true, true, true, true, true, true, true),
-        arrayOf(false, false, false, false, false, false, false, false, false, false),
-        arrayOf(false, false, false, false, false, false, false, false, false, false),
-        arrayOf(false, false, false, false, false, false, false, false, false, false),
-        arrayOf(false, false, false, false, false, false, false, false, false, false),
-        arrayOf(false, false, false, false, false, false, false, false, false, false),
-    ))
-    )
+    val gameLoopDuration = 25.milliseconds
+    private val ballTrue = MutableStateFlow(Ball(true, intArrayOf(0,arenaHeight/2 - 1)))
+    private val ballFalse = MutableStateFlow(Ball(false, intArrayOf(arenaWidth-1,arenaHeight/2-1)))
     val ball1Position = ballTrue.map { Offset(
         x = it.position.x* slotSize + (slotSize/2),
         y = it.position.y*slotSize + (slotSize/2)
@@ -42,11 +32,31 @@ internal class MainViewModel : ViewModel() {
         y = it.position.y*slotSize + (slotSize/2)
     ) }
 
-    init { viewModelScope.launch(Dispatchers.Default) { gameLoop() } }
+    init {
+        generateArena()
+        viewModelScope.launch(Dispatchers.Default) { gameLoop() }
+    }
+
+    fun generateArena() {
+        val trueRows = mutableListOf<Boolean>()
+        val falseRows = mutableListOf<Boolean>()
+        repeat(arenaHeight) {
+            trueRows.add(true)
+            falseRows.add(false)
+        }
+        val finalList = mutableListOf<Array<Boolean>>()
+        repeat(arenaWidth/2) {
+            finalList.add(trueRows.toTypedArray())
+        }
+        repeat(arenaWidth/2) {
+            finalList.add(falseRows.toTypedArray())
+        }
+        viewModelScope.launch(Dispatchers.Default) { arena.emit(Arena(finalList.toTypedArray())) }
+    }
+
 
     suspend fun gameLoop() {
         while (true) {
-            println("gameLoop()")
             var updatedBallTrue = ballTrue.first()
             var updatedBallFalse = ballFalse.first()
             val updatedArena = arena.first()

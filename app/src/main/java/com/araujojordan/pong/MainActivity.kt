@@ -20,11 +20,14 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import com.araujojordan.pong.models.Arena
 
+
 class MainActivity : ComponentActivity() {
+
+    private val viewModel = MainViewModel()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        val viewModel = MainViewModel()
         setContent {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -51,6 +54,14 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun onResume() {
+        super.onResume()
+        val displayMetrics = resources.displayMetrics
+        viewModel.arenaWidth = (displayMetrics.widthPixels / viewModel.slotSize).toInt()
+        viewModel.arenaHeight = (displayMetrics.heightPixels  / viewModel.slotSize).toInt()
+        viewModel.generateArena()
+    }
 }
 
 @Composable
@@ -59,7 +70,7 @@ private fun Arena(
     trueBall: Offset,
     falseBall: Offset,
     arena: Arena,
-) = Canvas(modifier = Modifier) {
+) = Canvas(modifier = Modifier.fillMaxSize()) {
     arena.slots.forEachIndexed { x, rows ->
         rows.forEachIndexed { y, tile ->
             drawRect(
