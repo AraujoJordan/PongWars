@@ -3,9 +3,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.araujojordan.pong.models.Arena
 import com.araujojordan.pong.Ball
+import com.araujojordan.pong.extensions.tryOrNull
 import com.araujojordan.pong.extensions.x
 import com.araujojordan.pong.extensions.y
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -16,25 +18,45 @@ import kotlin.time.Duration.Companion.milliseconds
 
 internal class MainViewModel : ViewModel() {
 
-    val arena = MutableStateFlow(Arena())
+    private val arena = MutableStateFlow(Arena())
+    val slots: MutableStateFlow<List<Pair<Int, Int>>> = MutableStateFlow(emptyList())
 
     var arenaWidth = 96
     var arenaHeight = 60
-    val slotSize = 20f
+    val slotSize = 22f
     val gameLoopDuration = 16.6.milliseconds
-    private val ballTrue = MutableStateFlow(Ball(true, intArrayOf(0,arenaHeight/2 - 1)))
-    private val ballFalse = MutableStateFlow(Ball(false, intArrayOf(arenaWidth-1,arenaHeight/2-1)))
-    val ball1Position = ballTrue.map { Offset(
-        x = it.position.x* slotSize + (slotSize/2),
-        y = it.position.y*slotSize + (slotSize/2)
-    ) }
-    val ball2Position = ballFalse.map { Offset(
-        x = it.position.x* slotSize + (slotSize/2),
-        y = it.position.y*slotSize + (slotSize/2)
-    ) }
+    val balls = MutableStateFlow<List<Ball>>(emptyList())
+    val extraBallsPos = balls.map {
+        it.map {
+            Offset(
+                x = it.position.x* slotSize + (slotSize/2),
+                y = it.position.y*slotSize + (slotSize/2)
+            ) to it.team
+        }
+    }
 
     init {
         generateArena()
+    }
+
+    fun onClick(team: Boolean) {
+        viewModelScope.launch(Dispatchers.Default) {
+            var offset = intArrayOf(-1,-1)
+            val arena = arena.first()
+            while(offset.contentEquals(intArrayOf(-1,-1))) {
+                val x = (0..arenaWidth).random()
+                val y = (0..arenaHeight).random()
+                if (tryOrNull { arena.slots[x][y] } != null && arena.slots[x][y] == team) {
+                    offset = intArrayOf(x,y)
+                }
+            }
+            balls.update {
+                it + Ball(
+                    team = team,
+                    position = offset
+                )
+            }
+        }
     }
 
     fun startGameLoop() = viewModelScope.launch(Dispatchers.Default) { tick() }
@@ -53,21 +75,40 @@ internal class MainViewModel : ViewModel() {
         repeat(arenaWidth/2) {
             finalList.add(falseRows.toTypedArray())
         }
-        viewModelScope.launch(Dispatchers.Default) { arena.emit(Arena(finalList.toTypedArray())) }
+        viewModelScope.launch(Dispatchers.Default) {
+            balls.emit(
+                listOf(
+                    Ball(true, intArrayOf(0,arenaHeight/2 - 1)),
+                    Ball(false, intArrayOf(arenaWidth-1,arenaHeight/2-1))
+                )
+            )
+            arena.emit(Arena(finalList.toTypedArray()))
+        }
     }
 
     suspend fun tick() {
         while (viewModelScope.isActive) {
             val updatedArena = arena.first()
 
-            viewModelScope.launch(Dispatchers.Default) {
-                ballTrue.update { updatedArena.nextState(ballTrue.first()) }
-            }
-            viewModelScope.launch(Dispatchers.Default) {
-                ballFalse.update { updatedArena.nextState(ballFalse.first()) }
+            balls.update {
+                it.map {
+                    updatedArena.nextState(it)
+                }
             }
 
-            arena.update { updatedArena }
+            arena.update {
+                updatedArena
+            }
+            slots.update {
+                mutableListOf<Pair<Int, Int>>().apply {
+                    updatedArena.slots.forEachIndexed { x, rows ->
+                        rows.forEachIndexed { y, tile ->
+                            if (tile)
+                                add(x to y)
+                        }
+                    }
+                }
+            }
             kotlinx.coroutines.delay(gameLoopDuration)
         }
     }

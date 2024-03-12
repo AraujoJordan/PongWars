@@ -59,7 +59,21 @@ data class Arena(
             hitDirection = updatedBall
             updatedBall = ball.rotate().walk()
             attempts++
-            if(attempts > 5) return nextState(ball.rotate())
+            if(attempts > 5) {
+                updatedBall = ball.rotate()
+                if(attempts > 10) {
+                    updatedBall = ball.rotate().copy(
+                        position = intArrayOf(
+                            ball.position.x + (-attempts - 9..attempts - 9).random(),
+                            ball.position.y + (-attempts - 9..attempts - 9).random()
+                        )
+                    )
+                    hitDirection = null
+                    if (attempts > 20) {
+                        return ball
+                    }
+                }
+            }
         }
         hitDirection?.let { ball.flipDirection(ball.position, hitDirection.position)  }
         return updatedBall

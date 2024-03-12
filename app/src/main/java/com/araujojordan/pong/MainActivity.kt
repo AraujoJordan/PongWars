@@ -5,27 +5,19 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.animateOffsetAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import com.araujojordan.pong.models.Arena
 
 
 class MainActivity : ComponentActivity() {
@@ -44,37 +36,35 @@ class MainActivity : ComponentActivity() {
         viewModel.startGameLoop()
 
         setContent {
-            Box(modifier = Modifier.fillMaxSize()) {
+            Box(modifier = Modifier.fillMaxSize().pointerInput(Unit) {
+                detectTapGestures(onTap = {
+                    viewModel.onClick(it.x < displayMetrics.widthPixels /2)
+                })
+            }) {
                 Arena(
                     slotSize = viewModel.slotSize,
-                    arena = viewModel.arena.collectAsState(Arena()),
+                    slots = viewModel.slots.collectAsState(emptyList()),
                 )
                 Balls(
                     slotSize = viewModel.slotSize,
-                    trueBall = viewModel.ball1Position.collectAsState(initial = Offset(0f,0f)),
-                    falseBall =  viewModel.ball2Position.collectAsState(initial = Offset(0f,0f)),
+                    balls = viewModel.extraBallsPos.collectAsState(emptyList())
                 )
             }
         }
     }
 }
 
-@Stable
 @Composable
 private fun Arena(
     slotSize: Float,
-    arena: State<Arena>,
+    slots: State<List<Pair<Int, Int>>>,
 ) = Canvas(Modifier) {
-    arena.value.slots.forEachIndexed { x, rows ->
-        rows.forEachIndexed { y, tile ->
-            if (tile) {
-                drawRect(
-                    color = Color.Black,
-                    topLeft = Offset(x * slotSize, y * slotSize),
-                    size = Size(slotSize, slotSize),
-                )
-            }
-        }
+    slots.value.forEach { (x, y) ->
+        drawRect(
+            color = Color.Black,
+            topLeft = Offset(x * slotSize, y * slotSize),
+            size = Size(slotSize, slotSize),
+        )
     }
 }
 
@@ -82,17 +72,13 @@ private fun Arena(
 @Composable
 private fun Balls(
     slotSize: Float,
-    trueBall: State<Offset>,
-    falseBall: State<Offset>,
+    balls: State<List<Pair<Offset, Boolean>>>
 ) = Canvas(modifier = Modifier.fillMaxSize()) {
-    drawCircle(
-        color = Color.White,
-        center = trueBall.value,
-        radius = slotSize,
-    )
-    drawCircle(
-        color = Color.Black,
-        center = falseBall.value,
-        radius = slotSize,
-    )
+    balls.value.forEach { (offset, team) ->
+        drawCircle(
+            color = if (team) Color.White else Color.Black,
+            center = Offset(offset.x, offset.y),
+            radius = slotSize,
+        )
+    }
 }
