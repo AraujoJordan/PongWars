@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -20,7 +21,7 @@ internal class MainViewModel : ViewModel() {
     var arenaWidth = 96
     var arenaHeight = 60
     val slotSize = 20f
-    val gameLoopDuration = 25.milliseconds
+    val gameLoopDuration = 16.6.milliseconds
     private val ballTrue = MutableStateFlow(Ball(true, intArrayOf(0,arenaHeight/2 - 1)))
     private val ballFalse = MutableStateFlow(Ball(false, intArrayOf(arenaWidth-1,arenaHeight/2-1)))
     val ball1Position = ballTrue.map { Offset(
@@ -34,8 +35,9 @@ internal class MainViewModel : ViewModel() {
 
     init {
         generateArena()
-        viewModelScope.launch(Dispatchers.Default) { gameLoop() }
     }
+
+    fun startGameLoop() = viewModelScope.launch(Dispatchers.Default) { tick() }
 
     fun generateArena() {
         val trueRows = mutableListOf<Boolean>()
@@ -54,20 +56,18 @@ internal class MainViewModel : ViewModel() {
         viewModelScope.launch(Dispatchers.Default) { arena.emit(Arena(finalList.toTypedArray())) }
     }
 
-
-    suspend fun gameLoop() {
-        while (true) {
-            var updatedBallTrue = ballTrue.first()
-            var updatedBallFalse = ballFalse.first()
+    suspend fun tick() {
+        while (viewModelScope.isActive) {
             val updatedArena = arena.first()
 
-            updatedBallTrue = updatedArena.nextState(updatedBallTrue)
-            updatedBallFalse = updatedArena.nextState(updatedBallFalse)
+            viewModelScope.launch(Dispatchers.Default) {
+                ballTrue.update { updatedArena.nextState(ballTrue.first()) }
+            }
+            viewModelScope.launch(Dispatchers.Default) {
+                ballFalse.update { updatedArena.nextState(ballFalse.first()) }
+            }
 
-            ballTrue.update { updatedBallTrue }
-            ballFalse.update { updatedBallFalse }
             arena.update { updatedArena }
-
             kotlinx.coroutines.delay(gameLoopDuration)
         }
     }
