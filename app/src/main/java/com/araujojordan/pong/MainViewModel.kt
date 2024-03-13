@@ -17,14 +17,15 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.measureTime
 
 internal class MainViewModel : ViewModel() {
 
     private val arena = MutableStateFlow(Arena())
     var arenaWidth = 96
     var arenaHeight = 60
-    val slotSize = 2f
-    val gameLoopDuration = 16.6.milliseconds
+    val slotSize = 20f
+    var gameLoopDuration = 16.6.milliseconds
     private val balls = MutableStateFlow<List<Ball>>(emptyList())
     val ballsPosition = balls.map {
         it.map {
@@ -34,7 +35,6 @@ internal class MainViewModel : ViewModel() {
             ) to it.team
         }.toTypedArray()
     }
-    var udpates = 0
     val trueSlots = arena.combine(balls) { arena, balls ->
         buildList {
             arena.slots.forEachIndexed { x, rows ->
@@ -106,12 +106,14 @@ internal class MainViewModel : ViewModel() {
 
     suspend fun tick() {
         while (viewModelScope.isActive) {
-            val updatedArena = arena.first()
+            kotlinx.coroutines.delay(
+                gameLoopDuration - measureTime {
+                    val updatedArena = arena.first()
 
-            balls.update { it.map { updatedArena.nextState(it) } }
-            arena.update { Arena(updatedArena.slots) }
-
-            kotlinx.coroutines.delay(gameLoopDuration)
+                    balls.update { it.map { updatedArena.nextState(it) } }
+                    arena.update { Arena(updatedArena.slots) }
+                }
+            )
         }
     }
 
