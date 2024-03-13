@@ -1,21 +1,17 @@
 package com.araujojordan.pong.models
 
-import com.araujojordan.pong.Ball
+import androidx.compose.ui.unit.IntOffset
 import com.araujojordan.pong.extensions.tryOrNull
-import com.araujojordan.pong.extensions.x
-import com.araujojordan.pong.extensions.y
 
-data class Arena(
-    val slots: Array<Array<Boolean>> = emptyArray(),
-) {
-    val IntArray.isOutsideArea: Boolean get() = try {
+data class Arena(val slots: Array<Array<Boolean>> = emptyArray()) {
+    val IntOffset.isOutsideArea: Boolean get() = try {
         slots[this@isOutsideArea.x][this@isOutsideArea.y]
         false
     } catch (err:Exception) {
         true
     }
 
-    fun isEnemyHit(previousPosition: IntArray, nextPosition: IntArray, forTeam: Boolean): Boolean {
+    fun isEnemyHit(previousPosition: IntOffset, nextPosition: IntOffset, forTeam: Boolean): Boolean {
         val dx = nextPosition.x - previousPosition.x
         val dy = nextPosition.y - previousPosition.y
 
@@ -27,19 +23,19 @@ data class Arena(
         }
     }
 
-    fun Ball.flipDirection(previousPosition: IntArray, nextPosition: IntArray) {
+    fun Ball.flipDirection(previousPosition: IntOffset, nextPosition: IntOffset) {
         val dx = nextPosition.x - previousPosition.x
         val dy = nextPosition.y - previousPosition.y
 
         when {
-            intArrayOf(previousPosition.x, previousPosition.y+dy).flip(this) -> true
-            intArrayOf(previousPosition.x+dx, previousPosition.y).flip(this) -> true
+            IntOffset(previousPosition.x, previousPosition.y+dy).flip(this) -> true
+            IntOffset(previousPosition.x+dx, previousPosition.y).flip(this) -> true
             nextPosition.flip(this) -> true
             else -> false
         }
     }
 
-    fun IntArray.flip(team: Ball) : Boolean = tryOrNull {
+    fun IntOffset.flip(team: Ball) : Boolean = tryOrNull {
         if(slots[x][y] != team.team) {
             slots[x][y] = team.team
             return@tryOrNull true
@@ -63,13 +59,14 @@ data class Arena(
                 updatedBall = ball.rotate()
                 if(attempts > 10) {
                     updatedBall = ball.rotate().copy(
-                        position = intArrayOf(
+                        position = IntOffset(
                             ball.position.x + (-attempts - 9..attempts - 9).random(),
-                            ball.position.y + (-attempts - 9..attempts - 9).random()
+                            ball.position.y + (-attempts - 9..attempts - 9).random(),
                         )
                     )
                     hitDirection = null
                     if (attempts > 20) {
+                        println("Ball ${ball.team} at ${ball.position} got stuck!")
                         return ball
                     }
                 }
@@ -78,6 +75,5 @@ data class Arena(
         hitDirection?.let { ball.flipDirection(ball.position, hitDirection.position)  }
         return updatedBall
     }
-
 }
 

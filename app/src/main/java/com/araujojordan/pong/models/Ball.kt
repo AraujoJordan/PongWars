@@ -1,13 +1,12 @@
-package com.araujojordan.pong
+package com.araujojordan.pong.models
 
-import com.araujojordan.pong.extensions.x
-import com.araujojordan.pong.extensions.y
+import androidx.compose.ui.unit.IntOffset
 import kotlin.random.Random
 
 
 data class Ball(
     val team: Boolean,
-    val position: IntArray = intArrayOf(5,5),
+    val position: IntOffset = IntOffset(5,5),
     val direction: Int = if (team) 45 else 135,
 ) {
     fun rotate(): Ball {
@@ -28,10 +27,10 @@ data class Ball(
     }
 
     fun walk() = copy(position = when (direction) {
-            45 -> intArrayOf(position.x + 1,position.y - 1)
-            135 -> intArrayOf(position.x + 1,position.y + 1)
-            225 -> intArrayOf(position.x - 1,position.y + 1)
-            else -> intArrayOf(position.x - 1,position.y - 1)
+            45 -> IntOffset(position.x + 1,position.y - 1)
+            135 -> IntOffset(position.x + 1,position.y + 1)
+            225 -> IntOffset(position.x - 1,position.y + 1)
+            else -> IntOffset(position.x - 1,position.y - 1)
         }
     )
 }

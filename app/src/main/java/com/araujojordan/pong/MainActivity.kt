@@ -18,6 +18,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.IntOffset
 
 
 class MainActivity : ComponentActivity() {
@@ -43,22 +44,23 @@ class MainActivity : ComponentActivity() {
             }) {
                 Arena(
                     slotSize = viewModel.slotSize,
-                    slots = viewModel.slots.collectAsState(emptyList()),
+                    slots = viewModel.trueSlots.collectAsState(emptyArray()),
                 )
                 Balls(
                     slotSize = viewModel.slotSize,
-                    balls = viewModel.extraBallsPos.collectAsState(emptyList())
+                    balls = viewModel.ballsPosition.collectAsState(emptyArray())
                 )
             }
         }
     }
 }
 
+@Stable
 @Composable
 private fun Arena(
     slotSize: Float,
-    slots: State<List<Pair<Int, Int>>>,
-) = Canvas(Modifier) {
+    slots: State<Array<IntOffset>>,
+) = Canvas(Modifier.fillMaxSize()) {
     slots.value.forEach { (x, y) ->
         drawRect(
             color = Color.Black,
@@ -72,7 +74,7 @@ private fun Arena(
 @Composable
 private fun Balls(
     slotSize: Float,
-    balls: State<List<Pair<Offset, Boolean>>>
+    balls: State<Array<Pair<Offset, Boolean>>>
 ) = Canvas(modifier = Modifier.fillMaxSize()) {
     balls.value.forEach { (offset, team) ->
         drawCircle(
